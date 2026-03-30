@@ -1,0 +1,11 @@
+[project]
+name = "momentum-confluence"
+version = "0.1.0"
+description = "Rule-based Binance Futures momentum trading system using confluence of structure, momentum, orderflow, and volatility signals."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "aiohttp>=3.9.0",
+    "pandas>=2.2.0",
+    "python-dotenv>=1.0.0"
+]

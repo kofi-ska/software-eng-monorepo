@@ -1,0 +1,22 @@
+[project]
+name = "entropy-monitor"
+version = "0.2.0"
+description = "End-to-end real-time market entropy monitor with Dash visualization using Binance WebSocket feeds."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+
+authors = [
+  { name = "settorka" }
+]
+
+dependencies = [
+  "numpy>=1.26.0",
+  "pandas>=2.2.0",
+  "matplotlib>=3.9.0",
+  "scipy>=1.13.0",
+  "websockets>=12.0",
+  "plotly>=5.22.0",
+  "dash>=2.17.0",
+  "tenacity>=8.2.0",  # dash dependency safeguard for retry logic
+]

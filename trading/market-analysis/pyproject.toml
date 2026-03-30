@@ -1,0 +1,13 @@
+[project]
+name = "async-trading"
+version = "0.1.0"
+description = "Asynchronous crypto trading analytics system"
+authors = [{ name = "Settor" }]
+requires-python = ">=3.12"
+
+dependencies = [
+    "pandas",
+    "numpy",
+    "ta",
+    "python-binance",
+]
