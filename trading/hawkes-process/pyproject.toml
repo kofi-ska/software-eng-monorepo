@@ -1,0 +1,15 @@
+[project]
+name = "hawkes-live"
+version = "0.1.0"
+description = "Live Hawkes-process volatility trading evaluator"
+authors = [{ name = "Settor" }]
+readme = "README.md"
+requires-python = ">=3.12"
+
+dependencies = [
+    "ccxt",
+    "pandas",
+    "numpy",
+    "websockets",
+]
+

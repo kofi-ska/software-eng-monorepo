@@ -1,0 +1,15 @@
+# TODO for multiwrite
+
+- Add syscall tracing instructions (dtruss/strace) and automated measurement wrapper.
+- Add benchmarks for write throughput (MB/s, words/sec).
+- Add progress logging (every N words) and ETA estimation.
+- Add configurable buffer size via flags.
+- Add multiple generators (dictionary-based, random-length, synthetic load).
+- Add file rotation (split every N GB or N lines).
+- Add throughput reporting post-run (MB written, duration, MB/s).
+- Add optional compression (gzip) streaming writer.
+- Add pprof profiling hooks (CPU, alloc).
+- Add concurrent producer pipeline for stress testing.
+- Add NVMe write stall detection / OS page cache flushing observation.
+- Add repeatable deterministic generator mode for testing.
+- Add metrics exporter (simple text, Prometheus)

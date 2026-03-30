@@ -1,0 +1,60 @@
+
+services:
+  ai-chat:
+    build: .
+    container_name: ai-chat
+    depends_on:
+      - cassandra
+      - redis
+    environment:
+      - SPRING_PROFILES_ACTIVE=compose
+      - SPRING_DATA_CASSANDRA_CONTACT_POINTS=cassandra
+      - SPRING_DATA_CASSANDRA_PORT=9042
+      - SPRING_DATA_CASSANDRA_KEYSPACE_NAME=ai_chat
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+      - SPRING_AI_OPENAI_API_KEY=${OPENAI_API_KEY}
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  redis:
+    image: redis:7.4
+    container_name: ai-chat-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+
+  cassandra:
+    image: cassandra:5.0
+    container_name: ai-chat-cassandra
+    ports:
+      - "9042:9042"
+    environment:
+      - CASSANDRA_CLUSTER_NAME=ai_chat_cluster
+      - CASSANDRA_KEYSPACE=ai_chat
+    volumes:
+      - cassandra-data:/var/lib/cassandra
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh cassandra -e 'describe keyspaces'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  redis-data:
+  cassandra-data:

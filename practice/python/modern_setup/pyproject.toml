@@ -1,0 +1,36 @@
+[project]                                            # Defines the core package metadata
+name = "modern-setup"                                # Package name
+version = "0.1.0"                                     # Package version
+description = "Add your description here"             # Short description
+readme = "README.md"                                  # Path to project README
+requires-python = ">=3.14"                            # Minimum Python version required
+dependencies = []                                     # Runtime dependencies (none here)
+
+[dependency-groups]                                   # Optional grouping for dev/prod envs
+dev = [                                               # Dev dependencies group
+    "mypy>=1.18.2",                                   # Static type checker
+    "pre-commit>=4.4.0",                              # Git hook automation tool
+    "pytest>=9.0.1",                                  # Test runner
+    "pytest-bdd>=8.1.0",                              # BDD test framework for pytest
+    "ruff>=0.14.5",                                   # Linter + formatter
+]
+
+[tool.ruff]                                           # Ruff configuration table
+line-length = 88                                      # Maximum line width
+target-version = "py312"                              # Python version Ruff should target
+fix = true                                            # Allow Ruff to auto-fix issues
+
+[tool.ruff.lint]                           # New place for linting rules
+extend-select = ["I"]                      # Enable import-order checks (isort rules)
+
+
+[tool.mypy]                                           # Mypy configuration table
+python_version = "3.14"                               # Target Python version for typing
+strict = true                                         # Enable strict type checking mode
+ignore_missing_imports = true                         # Suppress missing import warnings
+check_untyped_defs = true                             # Type-check defs without annotations
+
+[tool.pytest.ini_options]                             # Pytest config within pyproject
+pythonpath = ["src"]                                  # Add src/ to module resolution path
+testpaths = ["tests"]                                 # Where pytest looks for tests
+addopts = "-q"                                        # Quiet mode for test output

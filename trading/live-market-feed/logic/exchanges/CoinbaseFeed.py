@@ -1,0 +1,142 @@
+# logic/exchanges/CoinbaseFeed.py
+
+import json
+import asyncio
+import logging
+import websockets
+from typing import Dict, Any
+
+from logic.core.Registry import register_exchange
+from logic.feeds.OrderBookFeed import OrderBookFeed
+from logic.insights.OrderBookInsights import OrderBookInsights
+
+
+@register_exchange("coinbase")
+class CoinbaseFeed:
+    """
+    Coinbase exchange adapter.
+    Supports spot market order book streaming.
+    """
+
+    WS_URL = "wss://ws-feed.exchange.coinbase.com"
+
+    def __init__(self, market: str, feed_type: str):
+        self.market = market
+        self.feed_type = feed_type
+        self.symbol_feeds: Dict[str, asyncio.Task] = {}
+        self.insight_class = OrderBookInsights
+
+    async def add_symbol(self, symbol: str):
+        """
+        Start a live order book feed for the given symbol (e.g. BTC-USD).
+        """
+        if symbol in self.symbol_feeds:
+            logging.info(f"[COINBASE] Feed already active for {symbol}")
+            return
+
+        feed = CoinbaseOrderBookFeed(
+            exchange="coinbase",
+            market=self.market,
+            feed_type=self.feed_type,
+            symbol=symbol,
+        )
+        insights = self.insight_class()
+        task = asyncio.create_task(feed.run(insights))
+        self.symbol_feeds[symbol] = task
+        logging.info(f"[COINBASE] Started {self.feed_type} feed for {symbol}")
+
+    async def remove_symbol(self, symbol: str):
+        """Stop feed for a given symbol."""
+        task = self.symbol_feeds.pop(symbol, None)
+        if task:
+            task.cancel()
+            logging.info(f"[COINBASE] Stopped feed for {symbol}")
+
+    async def close(self):
+        """Gracefully stop all running feeds."""
+        for sym, task in list(self.symbol_feeds.items()):
+            task.cancel()
+            logging.info(f"[COINBASE] Cancelled {sym}")
+        self.symbol_feeds.clear()
+
+
+class CoinbaseOrderBookFeed(OrderBookFeed):
+    """
+    Coinbase order book WebSocket feed.
+    """
+
+    def __init__(self, exchange: str, market: str, feed_type: str, symbol: str):
+        super().__init__(exchange, market, feed_type, symbol)
+        self.url = CoinbaseFeed.WS_URL
+        self.product_id = symbol.upper()  # e.g., BTC-USD
+
+    async def connect(self):
+        """Connect to Coinbase WS and subscribe to the 'level2' channel."""
+        self.ws = await websockets.connect(self.url)
+        sub_msg = {
+            "type": "subscribe",
+            "product_ids": [self.product_id],
+            "channels": ["level2"],
+        }
+        await self.ws.send(json.dumps(sub_msg))
+        logging.info(f"[COINBASE] Subscribed to {self.product_id}")
+
+    async def _stream_messages(self):
+        """Yield messages from Coinbase WS."""
+        while self._running and self.ws:
+            try:
+                msg = await asyncio.wait_for(self.ws.recv(), timeout=30)
+                yield json.loads(msg)
+            except asyncio.TimeoutError:
+                logging.warning(f"[COINBASE] Timeout waiting for {self.product_id}")
+                continue
+            except Exception as e:
+                logging.error(f"[COINBASE] Error: {e}")
+                break
+
+    async def handle_message(self, msg: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Normalize Coinbase level2 messages.
+        Example message types: 'snapshot', 'l2update'
+        """
+        try:
+            if msg.get("type") == "snapshot":
+                bids = msg.get("bids", [])
+                asks = msg.get("asks", [])
+            elif msg.get("type") == "l2update":
+                # incremental update
+                bids, asks = self._extract_l2update(msg)
+            else:
+                return {}
+
+            if not bids or not asks:
+                return {}
+
+            best_bid = float(bids[0][0])
+            best_ask = float(asks[0][0])
+            spread = round(best_ask - best_bid, 2)
+
+            return {
+                "best_bid": best_bid,
+                "best_ask": best_ask,
+                "spread": spread,
+                "bid_volume": sum(float(b[1]) for b in bids[:5]),
+                "ask_volume": sum(float(a[1]) for a in asks[:5]),
+            }
+        except Exception as e:
+            logging.error(f"[COINBASE] Parse error: {e}")
+            return {}
+
+    def _extract_l2update(self, msg: Dict[str, Any]):
+        """
+        Coinbase sends deltas; this helper rebuilds small local book snapshot.
+        For simplicity, we only track top-of-book updates.
+        """
+        changes = msg.get("changes", [])
+        bids, asks = [], []
+        for side, price, size in changes:
+            if side == "buy":
+                bids.append([price, size])
+            elif side == "sell":
+                asks.append([price, size])
+        return bids, asks

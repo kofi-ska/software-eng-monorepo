@@ -1,0 +1,1 @@
+/Users/settoramediku/Documents/Github/software-eng-monorepo/practice/rust/message_formatter/target/debug/libmessage_formatter.rlib: /Users/settoramediku/Documents/Github/software-eng-monorepo/practice/rust/message_formatter/src/lib.rs
