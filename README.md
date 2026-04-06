@@ -1,2 +1,2 @@
 # software-eng-monorepo
-Monorepo for software engineering projects
+Monorepo for software engineering projects.
