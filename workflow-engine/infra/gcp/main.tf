@@ -3,7 +3,9 @@ locals {
     repo_url         = var.repo_url
     repo_ref         = var.repo_ref
     app_port         = var.app_port
+    public_domain    = var.public_domain
     postgres_password = var.postgres_password
+    v3_api_key       = var.v3_api_key
     app_root         = "/opt/workflow-engine"
     repo_dir         = "workspace"
   })
@@ -27,7 +29,7 @@ resource "google_compute_firewall" "app" {
 
   allow {
     protocol = "tcp"
-    ports    = [tostring(var.app_port)]
+    ports    = ["80", "443"]
   }
 
   source_ranges = ["0.0.0.0/0"]

@@ -91,7 +91,7 @@ function validatePermissions(v: unknown, issues: ValidationIssue[]): Permissions
     return null;
   }
 
-  return { effectTypesAllowlist, httpAllowedHosts };
+  return httpAllowedHosts ? { effectTypesAllowlist, httpAllowedHosts } : { effectTypesAllowlist };
 }
 
 function isJson(v: unknown): v is Json {
@@ -244,11 +244,19 @@ function validateNextInputs(v: unknown, issues: ValidationIssue[], path: string)
       return null;
     }
     const delayMs = ni.delayMs === undefined ? undefined : asNumber(ni.delayMs);
-    if (ni.delayMs !== undefined && (delayMs === null || delayMs < 0)) {
+    if (delayMs !== undefined && delayMs === null) {
       issues.push({ level: "error", code: "NEXT_INPUT_DELAY_INVALID", message: "nextInput.delayMs must be a non-negative number", path: `${np}.delayMs` });
       return null;
     }
-    out.push({ type, payload: ni.payload, delayMs: delayMs ?? undefined });
+    if (delayMs !== undefined && delayMs < 0) {
+      issues.push({ level: "error", code: "NEXT_INPUT_DELAY_INVALID", message: "nextInput.delayMs must be a non-negative number", path: `${np}.delayMs` });
+      return null;
+    }
+    if (delayMs === undefined) {
+      out.push({ type, payload: ni.payload });
+    } else {
+      out.push({ type, payload: ni.payload, delayMs });
+    }
   }
   return out;
 }
@@ -405,15 +413,12 @@ export function validateSpec(spec: unknown): ValidationResult {
         }
       }
 
-      transitions.push({
-        from,
-        on,
-        to,
-        guard: guard ?? undefined,
-        contextPatch: contextPatch ?? undefined,
-        effects: effects ?? undefined,
-        nextInputs: nextInputs ?? undefined
-      });
+      const transition: Transition = { from, on, to };
+      if (guard) transition.guard = guard;
+      if (contextPatch) transition.contextPatch = contextPatch;
+      if (effects) transition.effects = effects;
+      if (nextInputs) transition.nextInputs = nextInputs;
+      transitions.push(transition);
     }
   }
 
@@ -449,10 +454,13 @@ export function validateSpec(spec: unknown): ValidationResult {
     terminalStates: terminalStates!,
     states: states!,
     transitions,
-    timeouts: parseTimeouts(spec.timeouts, issues),
     permissions: permissions!,
     limits: limits!
   };
+  const parsedTimeouts = parseTimeouts(spec.timeouts, issues);
+  if (parsedTimeouts) {
+    typedSpec.timeouts = parsedTimeouts;
+  }
 
   if (typedSpec.timeouts) {
     for (let i = 0; i < typedSpec.timeouts.length; i++) {
@@ -499,11 +507,17 @@ function parseTimeouts(v: unknown, issues: ValidationIssue[]): TimeoutRule[] | u
     if (!type) issues.push({ level: "error", code: "TIMEOUT_EMIT_TYPE_INVALID", message: "emit.type must be a string", path: `${path}.emit.type` });
     if (!isJson(emit.payload)) issues.push({ level: "error", code: "TIMEOUT_EMIT_PAYLOAD_INVALID", message: "emit.payload must be JSON", path: `${path}.emit.payload` });
     const delayMs = emit.delayMs === undefined ? undefined : asNumber(emit.delayMs);
-    if (emit.delayMs !== undefined && (delayMs === null || delayMs < 0)) {
+    if (delayMs === null) {
       issues.push({ level: "error", code: "TIMEOUT_EMIT_DELAY_INVALID", message: "emit.delayMs must be a non-negative number", path: `${path}.emit.delayMs` });
+      continue;
     }
-    if (inState && afterMs !== null && type && isJson(emit.payload) && (emit.delayMs === undefined || (delayMs !== null && delayMs >= 0))) {
-      out.push({ inState, afterMs, emit: { type, payload: emit.payload, delayMs: delayMs ?? undefined } });
+    if (delayMs !== undefined && delayMs < 0) {
+      issues.push({ level: "error", code: "TIMEOUT_EMIT_DELAY_INVALID", message: "emit.delayMs must be a non-negative number", path: `${path}.emit.delayMs` });
+      continue;
+    }
+    if (inState && afterMs !== null && type && isJson(emit.payload) && (delayMs === undefined || delayMs >= 0)) {
+      const emitRule = delayMs === undefined ? { type, payload: emit.payload } : { type, payload: emit.payload, delayMs };
+      out.push({ inState, afterMs, emit: emitRule });
     }
   }
   return issues.some((i) => i.level === "error" && i.path?.startsWith("timeouts")) ? undefined : out;

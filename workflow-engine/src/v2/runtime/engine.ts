@@ -20,6 +20,7 @@ import type {
   WorkflowProjection,
   WorkflowStore
 } from "./ports.ts";
+import { withSpan } from "../../tracing.ts";
 
 export interface EngineDeps {
   spec: Spec;
@@ -52,7 +53,9 @@ export interface DrainResult {
 const IDEMPOTENCY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export async function handle(deps: EngineDeps, input: InputEnvelope): Promise<HandleResult> {
-  return deps.sequencer.runExclusive(input.workflowId, () => handleLocked(deps, input));
+  return deps.sequencer.runExclusive(input.workflowId, () =>
+    withSpan("engine.handle", { workflowId: input.workflowId, eventId: input.eventId }, () => handleLocked(deps, input))
+  );
 }
 
 export async function drainPendingWork(deps: EngineDeps, max = 100): Promise<DrainResult> {
@@ -72,13 +75,17 @@ export async function drainPendingWork(deps: EngineDeps, max = 100): Promise<Dra
         const res = await deps.effects.execute(effect);
         deps.metrics.inc("wf.effect.executed", { type: effect.type, ok: String(res.ok) });
         if (res.ok) {
-          await appendRecordCompat(deps.store, {
-            kind: "effect-acked",
-            workflowId,
-            commitId: effect.commitId,
-            effectId: effect.effectId,
-            recordedAt: deps.clock.nowIso()
-          }, workflowId, undefined, undefined);
+          try {
+            await appendRecordCompat(deps.store, {
+              kind: "effect-acked",
+              workflowId,
+              commitId: effect.commitId,
+              effectId: effect.effectId,
+              recordedAt: deps.clock.nowIso()
+            }, workflowId, undefined, undefined);
+          } catch (err) {
+            if (!isDuplicateWorkflowWriteError(err)) throw err;
+          }
           processedEffects++;
         } else {
           deps.logger.error("effect failed", {
@@ -105,13 +112,17 @@ export async function drainPendingWork(deps: EngineDeps, max = 100): Promise<Dra
         );
         results.push(res);
         if (res.rejected && res.reason === "store-append-failed") continue;
-        await appendRecordCompat(deps.store, {
-          kind: "task-acked",
-          workflowId,
-          commitId: task.commitId,
-          taskId: task.taskId,
-          recordedAt: deps.clock.nowIso()
-        }, workflowId, undefined, undefined);
+        try {
+          await appendRecordCompat(deps.store, {
+            kind: "task-acked",
+            workflowId,
+            commitId: task.commitId,
+            taskId: task.taskId,
+            recordedAt: deps.clock.nowIso()
+          }, workflowId, undefined, undefined);
+        } catch (err) {
+          if (!isDuplicateWorkflowWriteError(err)) throw err;
+        }
         processedTasks++;
       }
     });
@@ -210,6 +221,11 @@ async function handleLocked(deps: EngineDeps, input: InputEnvelope): Promise<Han
   try {
     await appendRecordCompat(deps.store, record, input.workflowId, instance, input);
   } catch (err) {
+    if (isDuplicateWorkflowWriteError(err)) {
+      deps.metrics.inc("wf.input.deduped");
+      deps.metrics.observeMs("wf.input.latency_ms", Date.now() - started);
+      return { deduped: true };
+    }
     deps.metrics.inc("wf.store.conflict");
     deps.logger.warn("store append failed", { workflowId: input.workflowId, error: String(err) });
     deps.metrics.observeMs("wf.input.latency_ms", Date.now() - started);
@@ -235,28 +251,34 @@ async function appendRejection(
 ): Promise<HandleResult> {
   const commitId = randomUUID();
   const recordedAt = deps.clock.nowIso();
+  const inputRecord = {
+    workflowId: input.workflowId,
+    eventId: input.eventId,
+    type: input.type,
+    schemaVersion: input.schemaVersion,
+    ...(input.tenantId ? { tenantId: input.tenantId } : {}),
+    ...(input.actor ? { actor: input.actor } : {})
+  };
   const record: WorkflowJournalRecord = {
     kind: "rejection",
     workflowId: input.workflowId,
     commitId,
     eventId: input.eventId,
     recordedAt,
-    input: {
-      workflowId: input.workflowId,
-      eventId: input.eventId,
-      type: input.type,
-      schemaVersion: input.schemaVersion,
-      tenantId: input.tenantId,
-      actor: input.actor
-    },
+    input: inputRecord,
     reason,
-    message,
     nextInstance: instance
   };
+  if (message !== undefined) {
+    record.message = message;
+  }
 
   try {
     await appendRecordCompat(deps.store, record, input.workflowId, instance, input);
   } catch (err) {
+    if (isDuplicateWorkflowWriteError(err)) {
+      return { deduped: true };
+    }
     deps.logger.error("rejection append failed", { workflowId: input.workflowId, error: String(err) });
     return { rejected: true, reason: "store-append-failed" };
   }
@@ -312,7 +334,8 @@ async function appendRecordCompat(
 ): Promise<void> {
   const anyStore = store as any;
   if (typeof anyStore.append === "function") {
-    await anyStore.append(record);
+    const expectedVersion = record.kind === "commit" || record.kind === "rejection" ? instance?.version : undefined;
+    await anyStore.append(record, expectedVersion);
     return;
   }
   if (record.kind === "commit" && typeof anyStore.save === "function" && typeof anyStore.appendHistory === "function") {
@@ -400,6 +423,12 @@ function buildPendingTasks(
 
 function deepCloneJson(v: any): any {
   return JSON.parse(JSON.stringify(v));
+}
+
+function isDuplicateWorkflowWriteError(err: unknown): boolean {
+  if (typeof err !== "object" || err === null) return false;
+  const anyErr = err as { code?: string; name?: string; message?: string };
+  return anyErr.code === "23505" || anyErr.name === "DuplicateWorkflowEventError" || anyErr.message === "duplicate workflow event";
 }
 
 function setDot(obj: any, path: string, value: any) {

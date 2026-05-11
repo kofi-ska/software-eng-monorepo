@@ -44,12 +44,13 @@ export function decide(spec: Spec, instance: Instance, input: InputEnvelope): De
     };
   }
 
-  return {
+  const decision: Decision = {
     transitionTaken: { from: transition.from, to: transition.to, on: transition.on },
-    contextPatch: transition.contextPatch,
     effects,
     nextInputs
   };
+  if (transition.contextPatch) decision.contextPatch = transition.contextPatch;
+  return decision;
 }
 
 function findTransition(transitions: Transition[], from: string, on: string): Transition | null {

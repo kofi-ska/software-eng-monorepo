@@ -10,6 +10,14 @@ services:
       DATA_DIR: /data
       DATABASE_URL: postgres://${POSTGRES_USER:-workflow}:${POSTGRES_PASSWORD:-workflow}@postgres:5432/${POSTGRES_DB:-workflow}
       MAX_BODY_BYTES: ${MAX_BODY_BYTES:-1048576}
+      MAX_CONCURRENT_REQUESTS: ${MAX_CONCURRENT_REQUESTS:-64}
+      MAX_REQUESTS_PER_MINUTE: ${MAX_REQUESTS_PER_MINUTE:-120}
+      V3_API_KEY: ${V3_API_KEY:?V3_API_KEY is required}
+      REQUIRE_V3_API_KEY: ${REQUIRE_V3_API_KEY:-true}
+      ENABLE_V1_HTTP: ${ENABLE_V1_HTTP:-false}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-workflow-engine-v3}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318/v1/traces}
+      OTEL_TRACES_ENABLED: ${OTEL_TRACES_ENABLED:-true}
     depends_on:
       postgres:
         condition: service_healthy
@@ -21,6 +29,20 @@ services:
       - "${PORT:-8080}:8080"
     volumes:
       - workflow-data:/data
+
+  edge:
+    image: caddy:2.8-alpine
+    depends_on:
+      - app
+    environment:
+      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./compose/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
 
   postgres:
     image: postgres:16-alpine
@@ -66,3 +88,5 @@ services:
 volumes:
   pgdata:
   workflow-data:
+  caddy_data:
+  caddy_config:

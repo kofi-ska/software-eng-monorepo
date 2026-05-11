@@ -1,7 +1,4 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-
-const execFileAsync = promisify(execFile);
+import { query } from "./postgres.ts";
 
 export interface ExecutionLogEntry {
   traceId: string;
@@ -18,48 +15,63 @@ export interface ExecutionLogEntry {
   responseJson: unknown;
 }
 
-function sqlLiteral(value: string): string {
-  return `'${value.replaceAll("'", "''")}'`;
-}
-
-function jsonLiteral(value: unknown): string {
-  return `${sqlLiteral(JSON.stringify(value))}::jsonb`;
-}
-
 export async function logExecution(entry: ExecutionLogEntry): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) return;
 
-  const sql = [
-    "insert into workflow_executions",
-    "(trace_id, service_version, route, engine_version, workflow_id, event_id, spec_id, spec_version, outcome, reason, request_json, response_json)",
-    "values",
-    "(",
-    [
-      sqlLiteral(entry.traceId),
-      sqlLiteral(entry.serviceVersion),
-      sqlLiteral(entry.route),
-      String(entry.engineVersion),
-      entry.workflowId ? sqlLiteral(entry.workflowId) : "null",
-      entry.eventId ? sqlLiteral(entry.eventId) : "null",
-      entry.specId ? sqlLiteral(entry.specId) : "null",
-      entry.specVersion === undefined ? "null" : String(entry.specVersion),
-      sqlLiteral(entry.outcome),
-      entry.reason ? sqlLiteral(entry.reason) : "null",
-      jsonLiteral(entry.requestJson),
-      jsonLiteral(entry.responseJson)
-    ].join(", "),
-    ");"
-  ].join(" ");
-
   try {
-    await execFileAsync("psql", ["-d", databaseUrl, "-v", "ON_ERROR_STOP=1", "-c", sql], {
-      timeout: 5000,
-      maxBuffer: 1024 * 1024
-    });
+    const requestJson = redactAuditJson(entry.requestJson);
+    const responseJson = redactAuditJson(entry.responseJson);
+    await query(
+      `insert into workflow_executions
+        (trace_id, service_version, route, engine_version, workflow_id, event_id, spec_id, spec_version, outcome, reason, request_json, response_json)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       on conflict (trace_id) do update set
+         service_version = excluded.service_version,
+         route = excluded.route,
+         engine_version = excluded.engine_version,
+         workflow_id = excluded.workflow_id,
+         event_id = excluded.event_id,
+         spec_id = excluded.spec_id,
+         spec_version = excluded.spec_version,
+         outcome = excluded.outcome,
+         reason = excluded.reason,
+         request_json = excluded.request_json,
+         response_json = excluded.response_json,
+         created_at = now()`,
+      [
+        entry.traceId,
+        entry.serviceVersion,
+        entry.route,
+        entry.engineVersion,
+        entry.workflowId ?? null,
+        entry.eventId ?? null,
+        entry.specId ?? null,
+        entry.specVersion ?? null,
+        entry.outcome,
+        entry.reason ?? null,
+        requestJson,
+        responseJson
+      ],
+      databaseUrl
+    );
   } catch (err) {
     // Logging must never break the request path.
     // eslint-disable-next-line no-console
     console.warn("execution log write failed", String(err));
   }
+}
+
+function redactAuditJson(value: unknown): unknown {
+  if (!value || typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.map(redactAuditJson);
+  const out: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (key === "payload" || key === "requestJson" || key === "responseJson" || key === "secret" || key === "token" || key === "password") {
+      out[key] = "[redacted]";
+      continue;
+    }
+    out[key] = redactAuditJson(entry);
+  }
+  return out;
 }

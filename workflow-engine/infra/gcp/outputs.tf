@@ -4,6 +4,6 @@ output "public_ip" {
 }
 
 output "public_url" {
-  value       = "http://${google_compute_address.main.address}:${var.app_port}"
+  value       = var.public_domain != "" ? "https://${var.public_domain}" : "http://${google_compute_address.main.address}"
   description = "HTTP URL for the live service."
 }

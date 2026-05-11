@@ -4,6 +4,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runVersioned, simulateVersioned, validateVersionedSpec } from "../../v3/runtime.ts";
+import { setTraceExporter, withRootSpan } from "../../tracing.ts";
 
 test("v3 validates versioned specs", () => {
   const res = validateVersionedSpec(2, null);
@@ -43,5 +44,44 @@ test("v3 runVersioned commits a v2 input", async () => {
   const dir = await mkdtemp(join(tmpdir(), "wfeng-v3-"));
   const input = { eventId: "e1", workflowId: "w1", type: "X", occurredAt: new Date().toISOString(), schemaVersion: 1, payload: {} };
   const res = await runVersioned(2, { version: 2, spec, input }, dir);
-  assert.equal(res.body.committed, true);
+  assert.equal((res.body as { committed?: boolean }).committed, true);
+});
+
+test("traces export a root request", async () => {
+  const captured: unknown[] = [];
+  setTraceExporter(async (payload) => {
+    captured.push(payload);
+  });
+
+  await withRootSpan("test.root", { workflowId: "w1" }, async () => {
+    await Promise.resolve();
+  });
+
+  assert.equal(captured.length, 1);
+  const payload = captured[0] as { resourceSpans?: unknown[] };
+  assert.ok(Array.isArray(payload.resourceSpans));
+});
+
+test("v3 enforces api key when configured", async () => {
+  const previousApiKey = process.env.V3_API_KEY;
+  process.env.V3_API_KEY = "test-secret";
+
+  const { isAuthorized } = await import("../../v3/server.ts");
+  const unauthorized = isAuthorized({ headers: {} } as never);
+  const bearerAuthorized = isAuthorized({
+    headers: { authorization: "Bearer test-secret" }
+  } as never);
+  const apiKeyAuthorized = isAuthorized({
+    headers: { "x-api-key": "test-secret" }
+  } as never);
+
+  assert.equal(unauthorized, false);
+  assert.equal(bearerAuthorized, true);
+  assert.equal(apiKeyAuthorized, true);
+
+  if (previousApiKey === undefined) {
+    delete process.env.V3_API_KEY;
+  } else {
+    process.env.V3_API_KEY = previousApiKey;
+  }
 });

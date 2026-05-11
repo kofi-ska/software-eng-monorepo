@@ -53,7 +53,7 @@ export class FileWorkflowStore implements WorkflowStore {
     return replayJournal(raw);
   }
 
-  async append(record: WorkflowJournalRecord): Promise<void> {
+  async append(record: WorkflowJournalRecord, _expectedVersion?: number): Promise<void> {
     await mkdir(this.journalDir(), { recursive: true });
     await appendFile(this.journalPath(record.workflowId), JSON.stringify(record) + "\n", "utf8");
   }

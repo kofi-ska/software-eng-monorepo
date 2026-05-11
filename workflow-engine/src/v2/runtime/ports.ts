@@ -65,7 +65,7 @@ export interface WorkflowProjection {
 
 export interface WorkflowStore {
   load(workflowId: WorkflowId): Promise<WorkflowProjection | null>;
-  append(record: WorkflowJournalRecord): Promise<void>;
+  append(record: WorkflowJournalRecord, expectedVersion?: number): Promise<void>;
   listWorkflowIds(): Promise<WorkflowId[]>;
 }
 

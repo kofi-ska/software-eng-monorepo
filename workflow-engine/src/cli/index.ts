@@ -3,11 +3,11 @@ import { readFile } from "node:fs/promises";
 import {
   AllowAllQuotaLimiter,
   ConsoleLogger,
-  FileIdempotencyStore,
   FileWorkflowStore,
   InMemorySequencer,
   NoopEffectExecutor,
   NoopMetrics,
+  FileScheduler,
   decide,
   drainPendingWork,
   handle,
@@ -88,11 +88,9 @@ async function main() {
         {
           spec: typedSpec,
           store: new FileWorkflowStore(storeDir),
-          idempotency: new FileIdempotencyStore(storeDir),
           effects: new NoopEffectExecutor(),
           quota: new AllowAllQuotaLimiter(),
           sequencer: new InMemorySequencer(),
-          scheduler: new FileScheduler(storeDir),
           clock: { nowIso: () => new Date().toISOString() },
           logger: new ConsoleLogger(),
           metrics: new NoopMetrics()
@@ -110,9 +108,9 @@ async function main() {
     if (!workflowId) die("Missing --workflow-id <id>");
     if (!storeDir) die("Missing --store <dir>");
     const store = new FileWorkflowStore(storeDir);
-    const inst = await store.load(workflowId);
-    console.log(JSON.stringify(inst, null, 2));
-    process.exit(inst ? 0 : 1);
+    const projection = await store.load(workflowId);
+    console.log(JSON.stringify(projection, null, 2));
+    process.exit(projection ? 0 : 1);
     return;
   }
 
@@ -130,22 +128,22 @@ async function main() {
     if (vr.issues.some((i) => i.level === "error")) process.exit(1);
     const typedSpec = vr.spec!;
 
-      const store = new FileWorkflowStore(storeDir);
-      const deps = {
-        spec: typedSpec,
-        store,
-        effects: new NoopEffectExecutor(),
-        quota: new AllowAllQuotaLimiter(),
-        sequencer: new InMemorySequencer(),
-        clock: { nowIso: () => new Date().toISOString() },
-        logger: new ConsoleLogger(),
-        metrics: new NoopMetrics()
-      };
+    const store = new FileWorkflowStore(storeDir);
+    const deps = {
+      spec: typedSpec,
+      store,
+      effects: new NoopEffectExecutor(),
+      quota: new AllowAllQuotaLimiter(),
+      sequencer: new InMemorySequencer(),
+      clock: { nowIso: () => new Date().toISOString() },
+      logger: new ConsoleLogger(),
+      metrics: new NoopMetrics()
+    };
 
-      const results = await drainPendingWork(deps, max);
-      console.log(JSON.stringify(results, null, 2));
-      return;
-    }
+    const results = await drainPendingWork(deps, max);
+    console.log(JSON.stringify(results, null, 2));
+    return;
+  }
 
   console.error(`Unknown command: ${cmd}`);
   process.exit(2);
@@ -183,8 +181,8 @@ function printIssues(issues: Array<{ level: string; code: string; message: strin
   }
 }
 
-function applyContextPatch(context: unknown, patch: unknown): unknown {
-  if (!patch || typeof patch !== "object") return context;
+function applyContextPatch(context: unknown, patch: unknown): Instance["context"] {
+  if (!patch || typeof patch !== "object") return context as Instance["context"];
   const base = JSON.parse(JSON.stringify(context));
   const anyPatch = patch as { set?: Record<string, unknown>; unset?: string[] };
   if (anyPatch.set) {
@@ -193,7 +191,7 @@ function applyContextPatch(context: unknown, patch: unknown): unknown {
   if (anyPatch.unset) {
     for (const k of anyPatch.unset) unsetDot(base, k);
   }
-  return base;
+  return base as Instance["context"];
 }
 
 function setDot(obj: any, path: string, value: unknown) {

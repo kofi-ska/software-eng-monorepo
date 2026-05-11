@@ -240,3 +240,49 @@ test("runtime returns store-append-failed on append error", async () => {
   const res = await handle(deps, input);
   assert.deepEqual(res, { rejected: true, reason: "store-append-failed" });
 });
+
+test("runtime dedupes duplicate journal writes", async () => {
+  const vr = validateSpec({
+    specId: "S",
+    specVersion: 1,
+    schemaVersion: 1,
+    initialState: "A",
+    terminalStates: ["B"],
+    states: ["A", "B"],
+    permissions: { effectTypesAllowlist: [] },
+    limits: { maxEffectsPerDecision: 10, maxNextInputsPerDecision: 10, maxContextBytes: 10000, maxPayloadBytes: 10000, maxGuardOps: 50 },
+    transitions: [{ from: "A", on: "X", to: "B" }]
+  });
+  const spec = vr.spec!;
+
+  class DuplicateStore implements WorkflowStore {
+    async load(_workflowId: string): Promise<WorkflowProjection | null> {
+      return {
+        instance: { workflowId: "w1", specId: "S", specVersion: 1, state: "A", context: {}, version: 0, status: "RUNNING" },
+        seenEventIds: new Map(),
+        pendingEffects: [],
+        pendingTasks: []
+      };
+    }
+    async append(_record: WorkflowJournalRecord): Promise<void> {
+      throw { code: "23505" };
+    }
+    async listWorkflowIds(): Promise<string[]> {
+      return [];
+    }
+  }
+
+  const deps = {
+    spec,
+    store: new DuplicateStore(),
+    effects: new NoopEffectExecutor(),
+    quota: new AllowAllQuotaLimiter(),
+    sequencer: new InMemorySequencer(),
+    clock: { nowIso: () => new Date().toISOString() },
+    logger: new ConsoleLogger(),
+    metrics: new NoopMetrics()
+  };
+  const input: InputEnvelope = { eventId: "e1", workflowId: "w1", type: "X", occurredAt: new Date().toISOString(), schemaVersion: 1, payload: {} };
+  const res = await handle(deps, input);
+  assert.equal((res as { deduped?: boolean }).deduped, true);
+});

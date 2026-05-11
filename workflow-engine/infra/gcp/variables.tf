@@ -44,6 +44,11 @@ variable "app_port" {
   default     = 8080
 }
 
+variable "public_domain" {
+  type        = string
+  description = "Public DNS name used by the reverse proxy."
+}
+
 variable "ssh_source_ranges" {
   type        = list(string)
   description = "CIDR blocks allowed to SSH to the VM."
@@ -54,4 +59,14 @@ variable "postgres_password" {
   type        = string
   description = "Postgres password used inside Compose."
   sensitive   = true
+}
+
+variable "v3_api_key" {
+  type        = string
+  description = "API key required by v3 HTTP endpoints."
+  sensitive   = true
+  validation {
+    condition     = length(trimspace(var.v3_api_key)) > 0
+    error_message = "v3_api_key must be set for public deployments."
+  }
 }
