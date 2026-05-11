@@ -28,6 +28,14 @@ flowchart LR
   - shared rate limiting
   - Postgres-backed workflow state and execution logs
   - OTel traces for execution visibility
+- `v3` exposes an ops snapshot for basic SLI monitoring.
+
+## SLO / SLA / SLI
+
+- **SLI**: request success rate, client error rate, server error rate, auth failures, rate-limit hits, overload hits, and request latency percentiles.
+- **SLO**: target `99.9%` availability, `p95 <= 250ms`, `p99 <= 750ms` for the live request path under normal load.
+- **SLA**: service is provided on a best-effort commercial basis for the deployed environment, with the above SLOs as the operational goal rather than a hard warranty.
+- The ops snapshot is exposed from `v3` so operators can inspect the current SLI state without pulling raw logs.
 
 ## Constraints
 

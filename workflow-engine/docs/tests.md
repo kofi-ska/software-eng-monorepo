@@ -26,6 +26,7 @@ flowchart LR
 - Commit, dedupe, append-failure, and spec-mismatch behavior.
 - Trace export smoke test.
 - API-key authorization behavior.
+- Ops snapshot shape for SLI monitoring.
 
 ## How To Run
 

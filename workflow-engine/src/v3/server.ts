@@ -13,20 +13,31 @@ const DATA_DIR = process.env.DATA_DIR ?? join(process.cwd(), "data");
 const MAX_BODY_BYTES = Number(process.env.MAX_BODY_BYTES ?? "1048576");
 const MAX_CONCURRENT_REQUESTS = Math.max(1, Number(process.env.MAX_CONCURRENT_REQUESTS ?? "64"));
 const MAX_REQUESTS_PER_MINUTE = Math.max(1, Number(process.env.MAX_REQUESTS_PER_MINUTE ?? "120"));
-const V3_API_KEY = process.env.V3_API_KEY?.trim() ?? "";
-const REQUIRE_V3_API_KEY = process.env.REQUIRE_V3_API_KEY !== "false";
 const ENABLE_V1_HTTP = process.env.ENABLE_V1_HTTP === "true";
 const requestLimiter = createRequestLimiter(MAX_REQUESTS_PER_MINUTE);
 
 let inFlightRequests = 0;
+const serviceStats = {
+  startedAtMs: Date.now(),
+  totalRequests: 0,
+  successfulRequests: 0,
+  clientErrorRequests: 0,
+  serverErrorRequests: 0,
+  unauthorizedRequests: 0,
+  rateLimitedRequests: 0,
+  overloadedRequests: 0,
+  requestDurationsMs: [] as number[]
+};
 
 initTracing();
 
 export async function startServer(port = PORT, host = process.env.BIND_HOST ?? "0.0.0.0") {
   assertServerConfig();
   const server = createServer(async (req, res) => {
+    const startedAt = Date.now();
     if (!acquireRequestSlot()) {
       writeJson(res, 503, { ok: false, error: "overloaded", message: "too many concurrent requests" }, randomUUID());
+      recordRequestOutcome(503, Date.now() - startedAt);
       return;
     }
 
@@ -38,6 +49,7 @@ export async function startServer(port = PORT, host = process.env.BIND_HOST ?? "
       const httpError = normalizeHttpError(err);
       writeJson(res, httpError.status, { ok: false, error: httpError.code, message: httpError.message }, currentTraceId() ?? randomUUID());
     } finally {
+      recordRequestOutcome(res.statusCode || 500, Date.now() - startedAt);
       releaseRequestSlot();
     }
   });
@@ -67,11 +79,16 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
         ok: databaseReady,
         dataDir: DATA_DIR,
         maxConcurrentRequests: MAX_CONCURRENT_REQUESTS,
-        authRequired: REQUIRE_V3_API_KEY,
+        authRequired: requiresApiKey(),
         databaseReady
       },
       traceId
     );
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/ops") {
+    writeJson(res, 200, { ok: true, snapshot: getOperationalSnapshot() }, traceId);
     return;
   }
 
@@ -189,6 +206,68 @@ function writeJson(res: ServerResponse, status: number, body: unknown, traceId?:
   res.end(JSON.stringify(body));
 }
 
+function recordRequestOutcome(statusCode: number, durationMs: number): void {
+  serviceStats.totalRequests += 1;
+  serviceStats.requestDurationsMs.push(durationMs);
+  if (serviceStats.requestDurationsMs.length > 512) {
+    serviceStats.requestDurationsMs.shift();
+  }
+
+  if (statusCode >= 200 && statusCode < 300) {
+    serviceStats.successfulRequests += 1;
+    return;
+  }
+  if (statusCode === 401) {
+    serviceStats.unauthorizedRequests += 1;
+  } else if (statusCode === 429) {
+    serviceStats.rateLimitedRequests += 1;
+  } else if (statusCode === 503) {
+    serviceStats.overloadedRequests += 1;
+  }
+  if (statusCode >= 400 && statusCode < 500) {
+    serviceStats.clientErrorRequests += 1;
+    return;
+  }
+  if (statusCode >= 500) {
+    serviceStats.serverErrorRequests += 1;
+  }
+}
+
+export function getOperationalSnapshot(): OperationalSnapshot {
+  const latencies = [...serviceStats.requestDurationsMs].sort((a, b) => a - b);
+  const requests = serviceStats.totalRequests;
+  return {
+    uptimeSeconds: Math.max(0, Math.floor((Date.now() - serviceStats.startedAtMs) / 1000)),
+    sinceIso: new Date(serviceStats.startedAtMs).toISOString(),
+    requests,
+    successRate: requests > 0 ? round(serviceStats.successfulRequests / requests, 4) : 1,
+    clientErrorRate: requests > 0 ? round(serviceStats.clientErrorRequests / requests, 4) : 0,
+    serverErrorRate: requests > 0 ? round(serviceStats.serverErrorRequests / requests, 4) : 0,
+    unauthorizedRequests: serviceStats.unauthorizedRequests,
+    rateLimitedRequests: serviceStats.rateLimitedRequests,
+    overloadedRequests: serviceStats.overloadedRequests,
+    latencyMs: {
+      avg: latencyAverage(latencies),
+      p50: percentile(latencies, 0.5),
+      p95: percentile(latencies, 0.95),
+      p99: percentile(latencies, 0.99),
+      max: latencies.length > 0 ? latencies[latencies.length - 1]! : 0
+    },
+    targets: {
+      availability: "99.9%",
+      p95LatencyMs: 250,
+      p99LatencyMs: 750,
+      duplicateCommitRate: "0%",
+      duplicateEffectExecutionRate: "0%"
+    },
+    currentRisk: {
+      authRequired: requiresApiKey(),
+      publicTrafficEnabled: true,
+      v1HttpEnabled: ENABLE_V1_HTTP
+    }
+  };
+}
+
 function randomId(): string {
   return `req_${randomUUID().replaceAll("-", "")}`;
 }
@@ -203,10 +282,11 @@ function requestAttributes(req: IncomingMessage) {
 }
 
 export function isAuthorized(req: IncomingMessage): boolean {
-  if (!V3_API_KEY) return !REQUIRE_V3_API_KEY;
+  const apiKey = currentApiKey();
+  if (!apiKey) return !requiresApiKey();
   const provided = requestApiKey(req);
   if (!provided) return false;
-  return secureEqual(provided, V3_API_KEY);
+  return secureEqual(provided, apiKey);
 }
 
 function requestApiKey(req: IncomingMessage): string | undefined {
@@ -272,9 +352,65 @@ function normalizeHttpError(err: unknown): HttpError {
 }
 
 function assertServerConfig(): void {
-  if (REQUIRE_V3_API_KEY && !V3_API_KEY) {
+  if (requiresApiKey() && !currentApiKey()) {
     throw new Error("V3_API_KEY is required for public v3 traffic");
   }
+}
+
+export interface OperationalSnapshot {
+  uptimeSeconds: number;
+  sinceIso: string;
+  requests: number;
+  successRate: number;
+  clientErrorRate: number;
+  serverErrorRate: number;
+  unauthorizedRequests: number;
+  rateLimitedRequests: number;
+  overloadedRequests: number;
+  latencyMs: {
+    avg: number;
+    p50: number;
+    p95: number;
+    p99: number;
+    max: number;
+  };
+  targets: {
+    availability: string;
+    p95LatencyMs: number;
+    p99LatencyMs: number;
+    duplicateCommitRate: string;
+    duplicateEffectExecutionRate: string;
+  };
+  currentRisk: {
+    authRequired: boolean;
+    publicTrafficEnabled: boolean;
+    v1HttpEnabled: boolean;
+  };
+}
+
+function round(value: number, digits: number): number {
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
+}
+
+function latencyAverage(values: number[]): number {
+  if (values.length === 0) return 0;
+  const total = values.reduce((sum, value) => sum + value, 0);
+  return round(total / values.length, 2);
+}
+
+function percentile(values: number[], fraction: number): number {
+  if (values.length === 0) return 0;
+  const index = Math.min(values.length - 1, Math.max(0, Math.ceil(values.length * fraction) - 1));
+  return values[index] ?? 0;
+}
+
+function currentApiKey(): string {
+  return process.env.V3_API_KEY?.trim() ?? "";
+}
+
+function requiresApiKey(): boolean {
+  return process.env.REQUIRE_V3_API_KEY !== "false";
 }
 
 async function checkDatabaseReadiness(): Promise<boolean> {

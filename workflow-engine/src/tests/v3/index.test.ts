@@ -4,7 +4,16 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runVersioned, simulateVersioned, validateVersionedSpec } from "../../v3/runtime.ts";
+import { getOperationalSnapshot, isAuthorized } from "../../v3/server.ts";
 import { setTraceExporter, withRootSpan } from "../../tracing.ts";
+
+test("v3 exposes operational snapshot fields", () => {
+  const snapshot = getOperationalSnapshot();
+  assert.equal(typeof snapshot.uptimeSeconds, "number");
+  assert.equal(typeof snapshot.requests, "number");
+  assert.equal(snapshot.targets.availability, "99.9%");
+  assert.equal(snapshot.currentRisk.publicTrafficEnabled, true);
+});
 
 test("v3 validates versioned specs", () => {
   const res = validateVersionedSpec(2, null);
@@ -65,8 +74,6 @@ test("traces export a root request", async () => {
 test("v3 enforces api key when configured", async () => {
   const previousApiKey = process.env.V3_API_KEY;
   process.env.V3_API_KEY = "test-secret";
-
-  const { isAuthorized } = await import("../../v3/server.ts");
   const unauthorized = isAuthorized({ headers: {} } as never);
   const bearerAuthorized = isAuthorized({
     headers: { authorization: "Bearer test-secret" }
