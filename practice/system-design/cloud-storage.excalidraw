@@ -65,7 +65,7 @@
       "version": 80,
       "versionNonce": 977050951,
       "isDeleted": false,
-      "boundElements": null,
+      "boundElements": [],
       "updated": 1778976893081,
       "link": null,
       "locked": false,
@@ -149,7 +149,7 @@
       "version": 388,
       "versionNonce": 319102249,
       "isDeleted": false,
-      "boundElements": null,
+      "boundElements": [],
       "updated": 1778976881921,
       "link": null,
       "locked": false,
@@ -185,8 +185,8 @@
         "type": 3
       },
       "seed": 1542462761,
-      "version": 155,
-      "versionNonce": 1924210407,
+      "version": 156,
+      "versionNonce": 1673253134,
       "isDeleted": false,
       "boundElements": [
         {
@@ -212,9 +212,13 @@
         {
           "id": "O1vvxrtiCIAj0wX74WgTo",
           "type": "arrow"
+        },
+        {
+          "id": "B5fCh5M1B0zUjFUjrUBG8",
+          "type": "arrow"
         }
       ],
-      "updated": 1778977046792,
+      "updated": 1778977982944,
       "link": null,
       "locked": false
     },
@@ -241,7 +245,7 @@
       "version": 95,
       "versionNonce": 840293703,
       "isDeleted": false,
-      "boundElements": null,
+      "boundElements": [],
       "updated": 1778976874803,
       "link": null,
       "locked": false,
@@ -277,8 +281,8 @@
         "type": 3
       },
       "seed": 268427079,
-      "version": 472,
-      "versionNonce": 1284400391,
+      "version": 473,
+      "versionNonce": 497671182,
       "isDeleted": false,
       "boundElements": [
         {
@@ -292,9 +296,13 @@
         {
           "type": "text",
           "id": "8daUvMCSBzoCNPV_bUlkg"
+        },
+        {
+          "id": "sct5oGxF7W3QL7CyxPqBQ",
+          "type": "arrow"
         }
       ],
-      "updated": 1778976876886,
+      "updated": 1778977973657,
       "link": null,
       "locked": false
     },
@@ -321,7 +329,7 @@
       "version": 292,
       "versionNonce": 598354983,
       "isDeleted": false,
-      "boundElements": null,
+      "boundElements": [],
       "updated": 1778976876886,
       "link": null,
       "locked": false,
@@ -405,7 +413,7 @@
       "version": 110,
       "versionNonce": 2018260585,
       "isDeleted": false,
-      "boundElements": null,
+      "boundElements": [],
       "updated": 1778976836596,
       "link": null,
       "locked": false,
@@ -481,7 +489,7 @@
       "version": 86,
       "versionNonce": 63163209,
       "isDeleted": false,
-      "boundElements": null,
+      "boundElements": [],
       "updated": 1778976838679,
       "link": null,
       "locked": false,
@@ -520,7 +528,7 @@
       "version": 928,
       "versionNonce": 1055411177,
       "isDeleted": false,
-      "boundElements": null,
+      "boundElements": [],
       "updated": 1778976887025,
       "link": null,
       "locked": false,
@@ -631,7 +639,7 @@
       "version": 48,
       "versionNonce": 1538194631,
       "isDeleted": false,
-      "boundElements": null,
+      "boundElements": [],
       "updated": 1778976874428,
       "link": null,
       "locked": false,
@@ -727,7 +735,7 @@
       "version": 14,
       "versionNonce": 272840009,
       "isDeleted": false,
-      "boundElements": null,
+      "boundElements": [],
       "updated": 1778976852629,
       "link": null,
       "locked": false,
@@ -877,7 +885,7 @@
       "version": 16,
       "versionNonce": 1513960841,
       "isDeleted": false,
-      "boundElements": null,
+      "boundElements": [],
       "updated": 1778975936444,
       "link": null,
       "locked": false,
@@ -973,7 +981,7 @@
       "version": 33,
       "versionNonce": 1578768199,
       "isDeleted": false,
-      "boundElements": null,
+      "boundElements": [],
       "updated": 1778976874512,
       "link": null,
       "locked": false,
@@ -1045,7 +1053,7 @@
       "version": 62,
       "versionNonce": 1576784711,
       "isDeleted": false,
-      "boundElements": null,
+      "boundElements": [],
       "updated": 1778976894295,
       "link": null,
       "locked": false,
@@ -1117,7 +1125,7 @@
       "version": 114,
       "versionNonce": 1024724455,
       "isDeleted": false,
-      "boundElements": null,
+      "boundElements": [],
       "updated": 1778976896121,
       "link": null,
       "locked": false,
@@ -1256,7 +1264,7 @@
       "version": 103,
       "versionNonce": 1837226825,
       "isDeleted": false,
-      "boundElements": null,
+      "boundElements": [],
       "updated": 1778976690387,
       "link": null,
       "locked": false,
@@ -1293,7 +1301,7 @@
       "version": 316,
       "versionNonce": 807276233,
       "isDeleted": false,
-      "boundElements": null,
+      "boundElements": [],
       "updated": 1778977037220,
       "link": null,
       "locked": false,
@@ -1310,10 +1318,10 @@
     {
       "id": "1_7dBNNJgNQ198nlFBVHE",
       "type": "text",
-      "x": -82.0546875,
-      "y": 201.015625,
-      "width": 358.19976806640625,
-      "height": 375,
+      "x": -223.0234375,
+      "y": 173.70703125,
+      "width": 490.65966796875,
+      "height": 575,
       "angle": 0,
       "strokeColor": "#1e1e1e",
       "backgroundColor": "transparent",
@@ -1327,20 +1335,20 @@
       "index": "aM",
       "roundness": null,
       "seed": 1671177257,
-      "version": 357,
-      "versionNonce": 732943529,
+      "version": 609,
+      "versionNonce": 584163086,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1778977634100,
+      "boundElements": [],
+      "updated": 1778978074696,
       "link": null,
       "locked": false,
-      "text": "1. Remote changed\n- Pull for changes\n- download the new file and replace\n\n2. Local Changed\n- upload the changed files to remote\n\n\nWindows API\n- File System Watcher\n\nMacOS API\n- FSEvents\n\nSync: Fast vs consistent",
+      "text": "1. Remote changed\n- Pull for changes\n- download the new file and replace\n\n2. Local Changed\n- upload the changed files to remote\n\n\nWindows API\n- File System Watcher\n\nMacOS API\n- FSEvents\n\nSync: Fast vs consistent\nFast\n- Adaptive polling\n- Delta sync to only detach changed chunks\n\nConsistent\n- Tradeoff between DB polling vs eventbus+cursor\n- Reconciliation\n",
       "fontSize": 20,
       "fontFamily": 5,
       "textAlign": "left",
       "verticalAlign": "top",
       "containerId": null,
-      "originalText": "1. Remote changed\n- Pull for changes\n- download the new file and replace\n\n2. Local Changed\n- upload the changed files to remote\n\n\nWindows API\n- File System Watcher\n\nMacOS API\n- FSEvents\n\nSync: Fast vs consistent",
+      "originalText": "1. Remote changed\n- Pull for changes\n- download the new file and replace\n\n2. Local Changed\n- upload the changed files to remote\n\n\nWindows API\n- File System Watcher\n\nMacOS API\n- FSEvents\n\nSync: Fast vs consistent\nFast\n- Adaptive polling\n- Delta sync to only detach changed chunks\n\nConsistent\n- Tradeoff between DB polling vs eventbus+cursor\n- Reconciliation\n",
       "autoResize": true,
       "lineHeight": 1.25
     },
@@ -1367,7 +1375,7 @@
       "version": 145,
       "versionNonce": 1790428263,
       "isDeleted": false,
-      "boundElements": null,
+      "boundElements": [],
       "updated": 1778976915122,
       "link": null,
       "locked": false,
@@ -1404,7 +1412,7 @@
       "version": 482,
       "versionNonce": 1726612169,
       "isDeleted": false,
-      "boundElements": null,
+      "boundElements": [],
       "updated": 1778977004610,
       "link": null,
       "locked": false,
@@ -1500,7 +1508,7 @@
       "version": 17,
       "versionNonce": 920579945,
       "isDeleted": false,
-      "boundElements": null,
+      "boundElements": [],
       "updated": 1778977053410,
       "link": null,
       "locked": false,
@@ -1537,7 +1545,7 @@
       "version": 909,
       "versionNonce": 68602759,
       "isDeleted": false,
-      "boundElements": null,
+      "boundElements": [],
       "updated": 1778977447200,
       "link": null,
       "locked": false,
@@ -1550,6 +1558,198 @@
       "originalText": "Functional Requirements\n- upload a file\n- download a file\n- automatically sync files across devices\n\nOut of Scope\n- roll own blob storage\n\nNon-functional requirements\n- availability >> consistency\n- low latency upload and downloads\n- support large files <=50GB\n    - resumable uploads\n- high data integrity during sync -> sync accuracy\n\n- Observability\n- Safety\n- Auditability\n- Performant\n\n\nCore Entities\n- file (raw bytes)\n- File Metadata\n- Users\n\nAPI\n- POST /files -> 201\n{file, fileMetadata}\n\n- GET /files/:fileId -> File & FileMetadata\n\n- GET /changes?since ={timestamp} -> fileIds[]",
       "autoResize": true,
       "lineHeight": 1.25
+    },
+    {
+      "id": "39rJ4FsP9bHGED7M5T91B",
+      "type": "rectangle",
+      "x": 1129.1701965332031,
+      "y": 751.6875,
+      "width": 353.36328125,
+      "height": 100.51171875,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "index": "aS",
+      "roundness": {
+        "type": 3
+      },
+      "seed": 1590842002,
+      "version": 54,
+      "versionNonce": 795548814,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "AY5JKaxV4ihtblfBIRk5I"
+        },
+        {
+          "id": "sct5oGxF7W3QL7CyxPqBQ",
+          "type": "arrow"
+        },
+        {
+          "id": "B5fCh5M1B0zUjFUjrUBG8",
+          "type": "arrow"
+        }
+      ],
+      "updated": 1778977982944,
+      "link": null,
+      "locked": false
+    },
+    {
+      "id": "AY5JKaxV4ihtblfBIRk5I",
+      "type": "text",
+      "x": 1254.8518676757812,
+      "y": 789.443359375,
+      "width": 101.99993896484375,
+      "height": 25,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "index": "aSV",
+      "roundness": null,
+      "seed": 216950866,
+      "version": 11,
+      "versionNonce": 1787199378,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1778977968304,
+      "link": null,
+      "locked": false,
+      "text": "Event Bus",
+      "fontSize": 20,
+      "fontFamily": 5,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "39rJ4FsP9bHGED7M5T91B",
+      "originalText": "Event Bus",
+      "autoResize": true,
+      "lineHeight": 1.25
+    },
+    {
+      "id": "sct5oGxF7W3QL7CyxPqBQ",
+      "type": "arrow",
+      "x": 1315.7951965332031,
+      "y": 623.90625,
+      "width": 0.2578125,
+      "height": 120.5390625,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "index": "aU",
+      "roundness": {
+        "type": 2
+      },
+      "seed": 1413347534,
+      "version": 42,
+      "versionNonce": 1973824786,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1778977976288,
+      "link": null,
+      "locked": false,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -0.2578125,
+          120.5390625
+        ]
+      ],
+      "lastCommittedPoint": null,
+      "startBinding": {
+        "elementId": "FvXDL12F1EXkRpiT8s_l-",
+        "focus": -0.07800172684300712,
+        "gap": 7.25390625
+      },
+      "endBinding": {
+        "elementId": "39rJ4FsP9bHGED7M5T91B",
+        "focus": 0.054090250872670206,
+        "gap": 7.2421875
+      },
+      "startArrowhead": "arrow",
+      "endArrowhead": "arrow",
+      "elbowed": false
+    },
+    {
+      "id": "B5fCh5M1B0zUjFUjrUBG8",
+      "type": "arrow",
+      "x": 1492.7170715332031,
+      "y": 751.03125,
+      "width": 109.66015625,
+      "height": 485.67578125,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "index": "aV",
+      "roundness": {
+        "type": 2
+      },
+      "seed": 678990670,
+      "version": 123,
+      "versionNonce": 1145621454,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1778977984463,
+      "link": null,
+      "locked": false,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          5.5,
+          -245.3125
+        ],
+        [
+          -104.16015625,
+          -485.67578125
+        ]
+      ],
+      "lastCommittedPoint": null,
+      "startBinding": {
+        "elementId": "39rJ4FsP9bHGED7M5T91B",
+        "focus": 1.0445162849277467,
+        "gap": 17.20088869175387
+      },
+      "endBinding": {
+        "elementId": "PUHzzI0NKfoIEON6sH8eG",
+        "focus": -0.5876111206220127,
+        "gap": 1.2636515362073442
+      },
+      "startArrowhead": "arrow",
+      "endArrowhead": "arrow",
+      "elbowed": false
     }
   ],
   "appState": {
